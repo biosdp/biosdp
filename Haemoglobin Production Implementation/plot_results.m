@@ -1,3 +1,16 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Function used to generate the figures, and compute three additionnal
+% biological meaningful fits (step-function, piece-wise polynomial, sigmoid)
+% of the generated control
+%
+% The input is a result file produced by the run_iterative_optimal_control
+% script
+%
+% This implementation is dedicated solely to the Haemoglobin production model.
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 function [ done ] = plot_results(save_file)
 
 close all;
@@ -94,8 +107,8 @@ title('Observable variable = H59(t)+4*Hb59(t)');
 hold on;
 end
 
-%%
-%p = polyfit(tsim,utt,4);
+%% some not plotted polynomial fit (same degree than the polynomial proposed in the previous paper describing the haemoglobin model )
+%p = polyfit(tsim,utt,4); 
 %f1 = polyval(p,tsim);
 %figure(2);
 %hold on;
@@ -108,10 +121,12 @@ xinit = [ 0.0664; 0; 0; 0; 0];
 control_scaling = 1e-3;
 mc_meansq = 0;
 %pmean = polyfit(tsim,utt,4);
+% Fit of each sub section using polyfit matlab function
 p1 = polyfit(tsim(1:2004),utt(1:2004),2);
 f11 = polyval(p1,tsim(1:2004));
 p2 = polyfit(tsim(2005:7014),utt(2005:7014),3);
 f12 = polyval(p2,tsim(2005:7014));
+
 figure(2);
 hold on;
 plot([tsim(1:2004)/3600;tsim(2005:7014)/3600],[f11;f12],'r--');
@@ -254,12 +269,11 @@ for i = 1:length(exp_table)
       
 %%%%% SIG smoothing
       
-        %controller1 =@(tt,xx) 1.6919e-04.*(((tt.*Tf)+lastTf).^7./((12*3600)^7+((tt.*Tf)+lastTf).^7)) +0.1e-5; %1.6919e-04
+        
         controller1 =@(tt,xx) psig((tt.*Tf)+lastTf);
         mode = 1; 
         [ tval1, xval1 ] = ode15s( @(tt,xx) simu_scaledode( tt, xx, controller1, mode,Tf,control_scaling), [0:0.001:T1/Tf], xinit,options);%, ode_options ); % put precision options ...
         % Mode 2
-        %controller2 =@(tt,xx) 1.6919e-04.*(((tt.*Tf)+lastTf).^7./((12*3600)^7+((tt.*Tf)+lastTf).^7)) +0.1e-5;
         controller2 =@(tt,xx) psig((tt.*Tf)+lastTf);
         mode = 2; 
         [ tval2, xval2 ] = ode15s( @(tt,xx) simu_scaledode( tt, xx, controller2,mode,Tf,control_scaling ), ...
@@ -350,7 +364,7 @@ plot(mean_infos{i}.tsim2/3600,(subH59+4*subHb59)*result_scaling_factor/3,'k--' )
 title('Observable variable = H59(t)+4*Hb59(t)');
 end
 
-%% Switch control
+%% Step function control
 mean_infos = {};
 lastTf = 0; 
 xinit = [ 0.0664; 0; 0; 0; 0];
@@ -362,17 +376,17 @@ for i = 1:length(exp_table)
         %if i <= 2
         if i==1    
             control_scaling = 1e-3;
-            controller1 =@(tt,xx) sum(utt(1:2004))/2004; %% auto mean fit
+            controller1 =@(tt,xx) sum(utt(1:2004))/2004; 
             controller2 =@(tt,xx) sum(utt(1:2004))/2004;
 
         elseif i==2
             control_scaling = 1e-3;
-            controller1 =@(tt,xx) sum(utt(1:2004))/2004; %% auto mean fit
+            controller1 =@(tt,xx) sum(utt(1:2004))/2004; 
             controller2 =@(tt,xx) sum(utt(1:2004))/2004;
 
         else
             control_scaling = 8e-3;
-            controller1 =@(tt,xx)  sum(utt(2005:7014))/5010;%% mean fitted
+            controller1 =@(tt,xx)  sum(utt(2005:7014))/5010;
             controller2 =@(tt,xx)  sum(utt(2005:7014))/5010;
 
         end
@@ -417,6 +431,8 @@ for i = 1:length(exp_table)
         lastTf = Tf+lastTf;
         mc_meansq = mc_meansq + err;
 end
+
+
 figure(2);
 hold on;
 plot(tswitch,uplot_switch,'g--');
@@ -499,6 +515,7 @@ hold on;
 subplot(2,2,[3 4])
 hold on;
 plot(result_table(:,1)/3600,result_table(:,2)*result_scaling_factor,'+');
+
 %% Legends
 figure(2);
 hold on;
@@ -512,7 +529,7 @@ xlabel('Time [hours]','Interpreter','tex', 'FontSize', 15);
 set(gcf,'Units','Inches');
 pos = get(gcf,'Position');
 set(gcf,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)]);
-print(gcf,'../Result_paper/opt_ctrl_test','-dpdf','-r0');
+%print(gcf,'../Result_paper/opt_ctrl_test','-dpdf','-r0');
 
 
 

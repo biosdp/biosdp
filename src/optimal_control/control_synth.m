@@ -1,3 +1,16 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  Function for Truncated control synthesis
+%  This is based on the previous implementation of
+%  https://github.com/pczhao/hybridOCP
+%
+% The input are :
+% prog_sol : all the information to perform the control synthesis
+% u : a precomputed form for the control
+% vars : the variable of the desired control
+% d : the degree of the desired control
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 function [ out ] = control_synth( prog_sol, u , vars, d )
 
 u_infos =  prog_sol.u_infos;

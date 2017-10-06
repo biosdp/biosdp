@@ -1,7 +1,20 @@
+%%%%%%%%%%%%%%%%%%
+%
+% Function used to descibe the local hybrid dynamical system corresponding to the  Haemoglobin
+% production model on a given time interval as a 2 mode controlled hybrid system. 
+% Inputs are: 
+% T1 the initial time (normaly set to 0 previously)
+% Tf the final time for the local optimization
+% xint the intial condition
+% relaxdeg the relaxation degree for the future optimization
+% xrefTf the target data point at Tf
+% scaling the scaling locally applied on the control
+% ulast the last value of the control
+%%%%%%%%%%%%%%%%%%
 function [ out ] = local_hybrid_optim( T1,Tf,xinit,relaxdeg,xrefTf,scaling,ulast )
 
     T = Tf;         % maximum time horizon
-    d = relaxdeg;          % degree of relaxation
+    d = relaxdeg;   % degree of relaxation
     nmodes = 2;     % number of hybrid modes
 
 
@@ -23,17 +36,16 @@ function [ out ] = local_hybrid_optim( T1,Tf,xinit,relaxdeg,xrefTf,scaling,ulast
     h = cell( nmodes, 1 );
     H = cell( nmodes, 1 );
         
-    x0{1} = xinit; % INTIAL CONDITION IS A POINT ! (mol/m??)
+    x0{1} = xinit; % INTIAL CONDITION
 
-
-    xref = xrefTf;
+    xref = xrefTf; % Target point
 
     trans_time = T1/Tf;
 
     % ===== Fixed parameters (taken from Table 1 in paper, column pmean)
     % We will search to synthesis of k3(t)
 
-    %PARAMETER SCALING ? Check values
+    %PARAMETERS NOT SCALED (scaled in the equations)
     k2 = 0; %3.78e-10;
     k4 = 4.47e-4;
     k5 = 7.27e-6;
@@ -41,7 +53,7 @@ function [ out ] = local_hybrid_optim( T1,Tf,xinit,relaxdeg,xrefTf,scaling,ulast
     k7 = 0; %4.97e-10;
     k8 = 1.14e-5;
     control_scaling = scaling;
-    %Feext input: 3.35e-5/3600
+    %Feext input: 3.35e-5/3600 % inline
     %Fe59ext input: 0.0251/3600 
 
     % =============================== Dynamics ===============================
@@ -105,17 +117,17 @@ function [ out ] = local_hybrid_optim( T1,Tf,xinit,relaxdeg,xrefTf,scaling,ulast
 
     % % ===================== Cost functions and target set ====================
     if(ulast ~= 0)
-        h{1} = (scaling*(ulast-ua))^2;
+        h{1} = (scaling*(ulast-ua))^2; % cost to the last iteration control
         %%%%%%%%
         y = x{2};
         h{2} = (scaling*(ulast-ua))^2 + (0.01*ua)^2;
-        H{2} = (y(6)+4*y(7) - 3*xref)^2;
+        H{2} = (y(6)+4*y(7) - 3*xref)^2; % Cost associated to the target
         hXT{2} = hX{2};
     else
         h{1} = 0;
         %%%%%%%%
         y = x{2};
-        h{2} = (0.01*ua)^2 ; % (0.1*ua)^2; %0 ;
+        h{2} = (0.01*ua)^2 ; % Cost on the amplitude of the control
         H{2} = (y(6)+4*y(7) - 3*xref)^2;
         hXT{2} = hX{2}; 
     end
@@ -126,7 +138,7 @@ function [ out ] = local_hybrid_optim( T1,Tf,xinit,relaxdeg,xrefTf,scaling,ulast
     options.withInputs = 1;
     options.svd_eps = 1e12;
 
-
+    % Call a function to build the spotless structure of the implmentation, and the mosek solver 
     [out_prog] = HybridOCPDualSolver_redo(t,x,u,f,g,hX,hU,sX,R,x0,hXT,h,H,d,options);
 
     pval = out_prog.pval;

@@ -1,4 +1,5 @@
 function [out] = HybridOCPDualSolver_redo(t,x,u,f,g,hX,hU,sX,R,x0,hXT,h,H,d,options)
+% The code is a variation of the code provide in https://github.com/pczhao/hybridOCP
 % Hybrid optimal control problem - dual solver
 % ------------------------------------------------------------------------
 % t     -- time indeterminate,      1-by-1 free msspoly
@@ -115,10 +116,6 @@ for i = 1 : nmodes
     [ prog, v{ i }, ~ ] = prog.newFreePoly( vmonom{ i } );
     
 %     % create the variables that will be used later
-%     if ~isempty( Tp{ i } )
-%         disp('Creating v(Ti)');
-%         vTp{ i } = subs( v{ i }, t, Tp{i} );
-%     end
     vT{ i } = subs( v{ i }, t, T );
     dvdt{ i } = diff( v{ i }, t );
     dvdx{ i } = diff( v{ i }, x{ i } );
@@ -179,20 +176,6 @@ for i = 1 : nmodes
         end
     end
     
-%      % v(Tj,x) <= H'_i(x)                  Dual: muTj
-%     if ~isempty( Tp{ i } )
-%         disp('Adding intermediate time  constraint');
-%         prog = sosOnK( prog, Hp{ i } - vTp{ i }, x{ i }, hX{ i }, d ); % Support de \muTi = X_i here currently (no intermediate target definition)
-%         sosinfos.var = x{ i };
-%         sosinfos.constraints = hX{ i };
-%         sosinfos.nbsos = size(sosinfos.constraints,1);
-%         sosinfos.dualconstraint =  Hp{ i } - vTp{ i };
-%         sosinfos.testfonction_degree = d;
-%         sosinfos.residu_max = 0;
-%         sosinfos.residu_sum = 0;
-%         prog_infos = [prog_infos;sosinfos];
-%         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%     end
     % v_i(t,x) <= v_j (t,R(x))          Dual: muS
     for j = 1 : nmodes
         if ( ~isempty( sX{ i, j } ) ) % if its empty there isn't a guard between these        
@@ -227,12 +210,12 @@ if isfield(options, 'solver_options')
     spot_options.solver_options = options.solver_options;
 end
 
-%% Solve
+%% Solve with mosek SDP/SoS solver
 tic;
 [sol, y, dual_basis, ~] = prog.minimize( -obj, @spot_mosek, spot_options );
 % [sol] = prog.minimize( -obj, @spot_mosek, spot_options );
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%% Numerical accuracy evaluation
 Glist  = sol.gramMatrices;
 Gramlist={};
 for i=1:length(Glist)...
@@ -277,14 +260,12 @@ out.infos = prog_infos;
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % return;
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Control Synthesis
+%% Store control Synthesis information for later
 if ~options.withInputs
     out.u = [];
     return;
 end
 
-
-%%
 u_infos.nmodes = nmodes;
 u_infos.uout = cell( nmodes, max_m );
 u_infos.u_real_basis = cell( nmodes, 1 );
@@ -293,49 +274,3 @@ u_infos.svd_eps = svd_eps;
 u_infos.dual_basis = dual_basis;
 u_infos.y = y;
 out.u_infos = u_infos;
-%%
-% 
-% uout = cell( nmodes, max_m );
-% u_real_basis = cell( nmodes, 1 );
-% 
-% for i = 1 : nmodes
-%      urb = monomials( [ t; x{ i } ], 0 : d/2 );    
-% %     urb = monomials( [ t ], 0:d/2);  
-% %      urb = monomials( [ t ], 0);  
-%     u_real_basis{ i } = urb;
-%     % moments of mu
-%     mu_basis = dual_basis{ mu_idx(i) };
-%     y_mu = sol.dualEval( y{ mu_idx(i) } );
-%     
-%     % moment matrix of mu
-%     mypoly = mss_s2v( urb * urb' );
-%     coeff_mu = DecompMatch( mypoly, mu_basis );
-%     moment_mat = double( mss_v2s( coeff_mu * y_mu ) );
-%     
-%     [U,S,V] = svd(moment_mat);
-%     iS1 = S;
-% 
-%     startExp = 1e-10;
-%     while norm(pinv(iS1)) / norm(S) > svd_eps
-%         iS1(iS1 < startExp) = 0;
-%         startExp = startExp * 10;
-%     end
-%     fprintf('norm of moment matrix %0.2f\n', norm(S));
-%     fprintf('norm of inverse moment matrix %0.2f\n', norm(pinv(iS1)));
-% 
-%     iMyt = V*pinv(iS1)*U';
-%     
-%     % yp and yn
-%     for j = 1 : length( u{ i } )
-%         fprintf('Processing mode %1.0f, input #%1.0f ...\n', i, j );
-%         mypoly = u{ i }( j ) * urb;
-%         coeff = DecompMatch( mypoly, mu_basis );
-%         y_u = sol.dualEval( coeff * y_mu );
-%         
-%         u_coeff = iMyt * y_u;
-%         uout{ i, j } = u_coeff' * urb;
-%         
-%     end
-% end
-% 
-% out.u = uout;
