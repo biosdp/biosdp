@@ -5,8 +5,8 @@ We guaranty the result reproducibility only for Mosekv7.1 and Matlab R2016a
 
 # Installation
 
-- add to path all the folders
-- add to path the mosek folder
+- add to path all the folders in this repository
+- add to path your own mosek folder
 
 # Execution
 
