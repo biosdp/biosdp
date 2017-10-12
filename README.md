@@ -1,7 +1,7 @@
 ## biosdp
 
 Implementation of the model revision method for Haemoglobin production model as described in the paper "Occupation measure methods for modelling and analysis of biological hybrid automata".
-We guaranty the result reproducibility only for Mosekv7.1 and Matlab R2016a
+We guaranty the results reproducibility only for Mosekv7.1 and Matlab R2016a
 
 # Installation
 
