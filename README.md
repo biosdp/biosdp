@@ -5,7 +5,7 @@ Implementation of the model revision method for Haemoglobin production model as 
 # Requirements
 
 - Matlab 2016a or later
-- Mosekv7.1 or later
+- Mosek v7.1 or later
 
 **NOTE:** If you are using a different version of Mosek, the numerical results may vary with respect to those reported in the paper.
 
